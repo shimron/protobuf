@@ -181,6 +181,7 @@ func (g *grpc) generateService(file *generator.FileDescriptor, service *pb.Servi
 
 	var methodIndex, streamIndex int
 	serviceDescVar := "_" + servName + "_serviceDesc"
+
 	// Client method implementations.
 	for _, method := range service.Method {
 		var descExpr string
@@ -256,6 +257,11 @@ func (g *grpc) generateService(file *generator.FileDescriptor, service *pb.Servi
 	g.P("},")
 	g.P("Metadata: \"", file.GetName(), "\",")
 	g.P("}")
+	//GetXXXServiceDesc
+	g.P("func Get" + servName + "ServiceDesc() *" + grpcPkg + ".ServiceDesc {")
+	g.P("return &" + serviceDescVar)
+	g.P("}")
+
 	g.P()
 }
 
