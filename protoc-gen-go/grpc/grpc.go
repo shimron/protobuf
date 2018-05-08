@@ -132,6 +132,10 @@ func (g *grpc) GenerateImports(file *generator.FileDescriptor) {
 	g.P("import (")
 	g.P(contextPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, contextPkgPath)))
 	g.P(grpcPkg, " ", strconv.Quote(path.Join(g.gen.ImportPrefix, grpcPkgPath)))
+	//TODO
+	g.P("consul ", strconv.Quote("hotbit/base/consul"))
+	g.P("server ", strconv.Quote("hotbit/base/service"))
+	g.P(strconv.Quote("sync"))
 	g.P(")")
 	g.P()
 }
@@ -170,6 +174,27 @@ func (g *grpc) generateService(file *generator.FileDescriptor, service *pb.Servi
 	// Client structure.
 	g.P("type ", unexport(servName), "Client struct {")
 	g.P("cc *", grpcPkg, ".ClientConn")
+	g.P("}")
+	g.P()
+
+	// LB Client from custom resolver
+	g.P("var (")
+	g.P(strings.ToLower(servName), "ClientInstance ", servName, "Client")
+	g.P(strings.ToLower(servName), "Once sync.Once")
+	g.P(")")
+	g.P()
+
+	g.P("func Get", servName, " () ", servName, "Client {")
+	g.P(strings.ToLower(servName), "Once.Do(func(){ ")
+	g.P("resolver := server.NewResolver(consul.GetClient())")
+	g.P("lb:=grpc.RoundRobin(resolver)")
+	g.P("cc,err:=grpc.Dial(", strconv.Quote(fullServName), ",grpc.WithInsecure(),grpc.WithBalancer(lb),grpc.WithBlock())")
+	g.P("if err!=nil {")
+	g.P("panic(err)")
+	g.P("}")
+	g.P(strings.ToLower(servName), "ClientInstance = New", servName, "Client(cc)")
+	g.P("})")
+	g.P("return ", strings.ToLower(servName), "ClientInstance")
 	g.P("}")
 	g.P()
 
